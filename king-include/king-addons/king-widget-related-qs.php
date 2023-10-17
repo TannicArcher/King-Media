@@ -1,0 +1,92 @@
+<?php
+
+/*
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either version 2
+	of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	More about this license: LICENCE.html
+*/
+
+	class qa_related_qs {
+		
+		var $voteformcode;
+		
+		
+		function allow_template($template)
+		{
+			return ($template=='question');
+		}
+
+		
+		function allow_region($region)
+		{
+			return in_array($region, array('side', 'main'));
+		}
+
+		
+		function output_widget($region, $place, $themeobject, $template, $request, $qa_content, $wtitle=null, $wextra=null)
+		{
+			require_once QA_INCLUDE_DIR.'king-db/selects.php';
+			
+			if (!isset($qa_content['q_view']['raw']['type']) || $qa_content['q_view']['raw']['type'] != 'Q') // question might not be visible, etc...
+			return;
+				
+			$questionid=$qa_content['q_view']['raw']['postid'];
+			
+			$userid=qa_get_logged_in_userid();
+			$cookieid=qa_cookie_get();
+			
+			$questions=qa_db_single_select(qa_db_related_qs_selectspec($userid, $questionid, qa_opt('page_size_related_qs')));
+				
+			$minscore=qa_match_to_min_score(qa_opt('match_related_qs'));
+			
+			foreach ($questions as $key => $question)
+				if ($question['score']<$minscore) 
+					unset($questions[$key]);
+
+
+			$title = isset($wtitle) ? $wtitle : qa_lang_html('main/related_qs_title');
+			if ($region=='side') {
+				
+				$themeobject->output(
+				'<DIV CLASS="ilgilit">',
+					'<div class="widget-title">',
+					$title,
+					'</div>'
+				);
+			} elseif ($region=='main') {
+				$themeobject->output(
+				'<DIV CLASS="ilgilit under-content">',
+					'<div class="widget-title">',
+					$title,
+					'</div>'
+				);
+			}
+				$options=qa_post_html_defaults('Q');
+				$usershtml=qa_userids_handles_html($questions);
+				$q_list = array();
+				$themeobject->output('<div CLASS="ilgili">');
+				foreach ($questions as $question) {
+					$themeobject->output(get_simple_post($question));
+				}
+
+
+
+				$themeobject->output('</div>');
+				$themeobject->output('</DIV>');
+			
+		}
+
+	}
+	
+
+/*
+	Omit PHP closing tag to help avoid accidental output
+*/
